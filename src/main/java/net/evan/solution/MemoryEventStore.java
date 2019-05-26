@@ -23,13 +23,15 @@ public class MemoryEventStore implements EventStore{
 	public void insert(Event event) {
 		// we need to get the current time index, or make one
 		NavigableMap<Long,EventLink> timeIndex;
-		if(!events.containsKey(event.type())) {
-			// there have been no events of this type yet, make a new map
-			timeIndex = new TreeMap<Long,EventLink>();
-			events.put(event.type(),timeIndex);
-		}
-		else {
-			timeIndex = events.get(event.type());
+		synchronized(events) {
+			if(!events.containsKey(event.type())) {
+				// there have been no events of this type yet, make a new map
+				timeIndex = new TreeMap<Long,EventLink>();
+				events.put(event.type(),timeIndex);
+			}
+			else {
+				timeIndex = events.get(event.type());
+			}
 		}
 		// we're going to synchronize the entire timeIndex. This means we can't insert multiple things at a time.
 		// it would, of course, be better to synchronize something smaller, but I think that without implementing
@@ -52,7 +54,7 @@ public class MemoryEventStore implements EventStore{
 				}
 				else {
 					// either there's a next only or both. Either way, we can set both links with this
-					timeIndex.get(prevTime).setNext_Relink(link);
+					timeIndex.get(prevTime).getLast_sameTime().setNext_Relink(link);
 				}
 				timeIndex.put(event.timestamp(),link);
 			}

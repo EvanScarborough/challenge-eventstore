@@ -7,6 +7,8 @@ import net.evan.solution.MemoryEventStore;
 
 import static org.junit.Assert.assertEquals;
 
+import java.util.Random;
+
 public class EventTest {
     @Test
     public void thisIsAWarning() throws Exception {
@@ -255,14 +257,23 @@ public class EventTest {
 
     	private final String type;
     	private final EventStore store;
+    	private Random rand;
     	
 		@Override
 		public void run() {
-			for(long i=0; i<100; i++) store.insert(new Event(type, i));
+			for(long i=0; i<100; i++) {
+				try {
+					Thread.sleep(Math.abs(rand.nextInt()%2));
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+				store.insert(new Event(type, i));
+			}
 		}
 		public InsertThread(EventStore s, String t) {
 			store = s;
 			type = t;
+			rand = new Random();
 		}
     	
     }
@@ -286,23 +297,25 @@ public class EventTest {
     
     @Test
     public void threading() throws Exception{
-    	EventStore store = new MemoryEventStore();
-    	
-    	InsertThread inThread = new InsertThread(store,"rock");
-    	Thread t1 = new Thread(inThread, "t1");
-    	Thread t2 = new Thread(inThread, "t2");
-    	t1.start();
-    	t2.start();
-    	// wait for them to do their thing
-    	t1.join();
-        t2.join();
-        
-        EventIterator iterator = store.query("rock", 0L, 100L);
-    	int countRock = 0;
-    	while(iterator.moveNext()) {
-    		countRock += 1;
+    	for(int i = 0; i < 100; i++) {
+	    	EventStore store = new MemoryEventStore();
+	    	
+	    	InsertThread inThread = new InsertThread(store,"rock");
+	    	Thread t1 = new Thread(inThread, "t1");
+	    	Thread t2 = new Thread(inThread, "t2");
+	    	t1.start();
+	    	t2.start();
+	    	// wait for them to do their thing
+	    	t1.join();
+	        t2.join();
+	        
+	        EventIterator iterator = store.query("rock", 0L, 100L);
+	    	int countRock = 0;
+	    	while(iterator.moveNext()) {
+	    		countRock += 1;
+	    	}
+	    	assertEquals(200,countRock);
     	}
-    	assertEquals(200,countRock);
     }
     
     

@@ -82,7 +82,12 @@ public class EventLink {
 		// otherwise, this one is the last of the same time, so insert link here
 		setNext_Relink(link);
 	}
-	
+	// get the last event overall
+	public EventLink getLast_sameTime() {
+		if(next==null)return this;
+		if(next.getEvent().timestamp()!=event.timestamp())return this;
+		return next.getLast_sameTime();
+	}
 	// get the last event overall
 	public EventLink getLast() {
 		if(next==null)return this;

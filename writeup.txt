@@ -1,0 +1,26 @@
+Design
+
+I decided to use a data structure that is a combination of a TreeMap and a linked list. There are actually two TreeMaps: one maps from the event's type to the other TreeMap that maps from the timestamp to an "EventLink." The EventLink is like a linked list entry. It holds the event itself and also points to the next and previous EventLink of the same type. Essentially it can be thought of as a tree where all of the "leaves" of the tree point to the next and previous.
+
+This was done because it allows for good performance on all of the required behaviors:
+
+inserting - using a TreeMap, it is efficient to find the location where the new event should be inserted. It loses some performance due to having to relink the linked list, but it's the difference between O(log(n)) and O(3*log(n)). So it is alright.
+
+querying - this is the fastest operation. Due to the events already being in a linked list, the query just has to return an EventIterator with a pointer to the first event and an understanding of the end time. It's as easy as indexing into the TreeMap. The query results do get updated when new insertions and deletions occur after the query. I do not know if this is the expected behavior. If it isn't I could change it to make the EventIterator have its own list.
+
+deletion - relatively efficient, since the events are in a linked list, it just traverses the list backwards deleting each entry.
+
+
+Tests
+
+See EventTest.java. This tests the functionality of insertions, deletions, and queries. Also contains a threading test.
+
+
+Thread Safety
+
+After a good amount of testing, I realized that due to the complexity of the data structure, thread safety is a difficult task. Right now, the entire time index in the TreeMap has to be synchronized with each action. This essentially limits the EventStore to one insertion at a time per type. This is the safest way to do this, but at the sacrifice of allowing multiple insertions at once. I believe that the efficiency of the data structure largely makes up for this, but it could be more efficient in this way.
+
+In order to make this as efficient as possible in a multithreaded environment, it would have to be able to lock at the EventLink level. The trouble comes in that it also needs to lock the next EventLink and the previous EventLink to ensure proper linking can occur without being interrupted. It also needs to lock the smallest part of the TreeMap structure as possible to prevent reordering the three EventLinks in question. The standard TreeMap did not provide the necessary level of granularity to achieve this, I would have to make my own implementation of a TreeMap. I decided that the benefit of this would not outweight the time it would take, considering how the data structure is very efficient by itself.
+
+
+Thanks for reading! There are certainly some areas that could be improved (mainly in multithreading), but I believe that this EventStore works very well.
